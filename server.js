@@ -10,6 +10,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json());
+// Serve a simple frontend from / (optional)
+app.use(express.static('public'));
 app.options('/api/v1/runs', cors(corsOptions));
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -39,7 +41,7 @@ app.post("/api/v1/runs", (req, res) => {
 
   const interval = setInterval(() => {
     if (index < message.length) {
-      const chunk = { content: message[index] };
+      const chunk = { content: message[index]  ,chunkType:"chunk"};
       // ensure each SSE message ends with a double newline (`\n\n`)
       res.write(`data: ${JSON.stringify(chunk)}\n\n`);
       if (typeof res.flush === 'function') res.flush();
