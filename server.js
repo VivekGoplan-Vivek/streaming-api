@@ -23,7 +23,9 @@ app.post("/api/v1/runs", (req, res) => {
   const { input } = req.body;
 
   res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  // Disable buffering in some proxies (nginx, Heroku routers)
+  res.setHeader('X-Accel-Buffering', 'no');
   res.setHeader("Connection", "keep-alive");
 
   res.flushHeaders();
@@ -31,13 +33,20 @@ app.post("/api/v1/runs", (req, res) => {
   const message = `Streaming response for: ${input}`;
   let index = 0;
 
+  // Send an initial comment to try to kick proxies into streaming mode
+  res.write(':ok\n\n');
+  if (typeof res.flush === 'function') res.flush();
+
   const interval = setInterval(() => {
     if (index < message.length) {
       const chunk = { content: message[index] };
+      // ensure each SSE message ends with a double newline (`\n\n`)
       res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      if (typeof res.flush === 'function') res.flush();
       index++;
     } else {
       res.write(`data: ${JSON.stringify({ content: '[DONE]' })}\n\n`);
+      if (typeof res.flush === 'function') res.flush();
       clearInterval(interval);
       res.end();
     }
