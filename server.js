@@ -2,8 +2,22 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
+// Permissive CORS for any client/project and preflight handling
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
 app.use(express.json());
+app.options('/api/v1/runs', cors(corsOptions));
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 
 app.post("/api/v1/runs", (req, res) => {
   const { input } = req.body;
@@ -19,10 +33,11 @@ app.post("/api/v1/runs", (req, res) => {
 
   const interval = setInterval(() => {
     if (index < message.length) {
-      res.write(`data: ${message[index]}\n\n`);
+      const chunk = { content: message[index] };
+      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
       index++;
     } else {
-      res.write(`data: [DONE]\n\n`);
+      res.write(`data: ${JSON.stringify({ content: '[DONE]' })}\n\n`);
       clearInterval(interval);
       res.end();
     }
